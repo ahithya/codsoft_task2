@@ -1,0 +1,43 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error, r2_score
+from category_encoders import TargetEncoder
+
+# Load dataset (adjust path if needed)
+df = pd.read_csv("IMDb Movies India.csv", encoding="ISO-8859-1")
+
+# Drop rows where Rating is missing (our target)
+df_model = df.dropna(subset=["Rating"])
+
+# Convert Votes to numeric for filtering
+df_model["Votes"] = pd.to_numeric(df_model["Votes"], errors="coerce")
+df_model = df_model.dropna(subset=["Votes"])
+
+df_model = df_model.sort_values(by="Votes", ascending=False).head(1000)
+
+# Select features and target
+features = ["Genre", "Director", "Actor 1", "Actor 2", "Actor 3"]
+X = df_model[features].fillna("Unknown")
+y = df_model["Rating"]
+
+# Encode categorical features using Target Encoding
+encoder = TargetEncoder()
+X_encoded = encoder.fit_transform(X, y)
+
+# Train-test split
+X_train, X_test, y_train, y_test = train_test_split(X_encoded, y, test_size=0.2, random_state=42)
+
+# Train a Random Forest model
+model = RandomForestRegressor(n_estimators=50, random_state=42)
+model.fit(X_train, y_train)
+
+# Predict
+y_pred = model.predict(X_test)
+
+# Evaluate
+mse = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
+
+print(f"Mean Squared Error: {mse:.2f}")
+print(f"R^2 Score: {r2:.2f}")
